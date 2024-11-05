@@ -11,13 +11,9 @@ import "./leafletWorkaround.ts";
 //import luck from "./luck.ts";
 
 const APP_NAME = "GeoCoin";
-const app = document.querySelector<HTMLDivElement>("#app")!;
+//const app = document.querySelector<HTMLDivElement>("#app")!;
 
 document.title = APP_NAME;
-
-const header = document.createElement("h2");
-header.innerHTML = APP_NAME;
-app.append(header);
 
 const zoomAmount = 19;
 const map = leaflet.map("map", {
