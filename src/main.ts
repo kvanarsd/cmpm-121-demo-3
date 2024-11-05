@@ -11,8 +11,15 @@ import "./leafletWorkaround.ts";
 //import luck from "./luck.ts";
 
 const APP_NAME = "GeoCoin";
-//const app = document.querySelector<HTMLDivElement>("#app")!;
+const app = document.querySelector<HTMLDivElement>("#app")!;
 document.title = APP_NAME;
+
+const button = document.createElement("button");
+button.innerHTML = "Click me";
+button.addEventListener("click", () => {
+  alert("you clicked the button!");
+});
+app.append(button);
 
 const playerLocation = [36.989498, -122.062777];
 const zoomAmount = 19;
