@@ -8,21 +8,20 @@ import "./style.css";
 import "./leafletWorkaround.ts";
 
 // Deterministic random number generator
-//import luck from "./luck.ts";
+import luck from "./luck.ts";
 
 const APP_NAME = "GeoCoin";
-const app = document.querySelector<HTMLDivElement>("#app")!;
+//const app = document.querySelector<HTMLDivElement>("#app")!;
 document.title = APP_NAME;
 
-const button = document.createElement("button");
-button.innerHTML = "Click me";
-button.addEventListener("click", () => {
-  alert("you clicked the button!");
-});
-app.append(button);
-
+// map variables -------------------------------------------------------
 const playerLocation = [36.989498, -122.062777];
 const zoomAmount = 19;
+const tileSize = 1e-4;
+const neighborhoodSize = 8;
+const cacheChance = 0.1;
+
+// create map
 const map = leaflet.map("map", {
   center: playerLocation,
   zoom: zoomAmount,
@@ -35,6 +34,33 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
+// Player marker
 const playerMarker = leaflet.marker(playerLocation).addTo(map);
 playerMarker.bindTooltip("This is you!");
-// test workflow
+
+// functions -------------------------------------------------------
+
+function placeCache(y: number, x: number) {
+  const bounds = leaflet.latLngBounds(
+    [y, x],
+    [y + tileSize, x + tileSize],
+  );
+  const rect = leaflet.rectangle(bounds);
+  rect.addTo(map);
+}
+
+for (
+  let y = playerLocation[0] - tileSize * neighborhoodSize;
+  y < playerLocation[0] + tileSize * neighborhoodSize;
+  y += tileSize
+) {
+  for (
+    let x = playerLocation[1] - tileSize * neighborhoodSize;
+    x < playerLocation[1] + tileSize * neighborhoodSize;
+    x += tileSize
+  ) {
+    if (luck([y, x].toString()) <= cacheChance) {
+      placeCache(y, x);
+    }
+  }
+}
