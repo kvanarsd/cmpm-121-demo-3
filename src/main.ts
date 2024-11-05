@@ -12,12 +12,12 @@ import "./leafletWorkaround.ts";
 
 const APP_NAME = "GeoCoin";
 //const app = document.querySelector<HTMLDivElement>("#app")!;
-
 document.title = APP_NAME;
 
+const playerLocation = [36.989498, -122.062777];
 const zoomAmount = 19;
 const map = leaflet.map("map", {
-  center: [36.989498, -122.062777],
+  center: playerLocation,
   zoom: zoomAmount,
   scrollWheelZoom: false,
 });
@@ -27,3 +27,6 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
+
+const playerMarker = leaflet.marker(playerLocation).addTo(map);
+playerMarker.bindTooltip("This is you!");
