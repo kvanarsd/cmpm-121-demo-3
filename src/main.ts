@@ -24,6 +24,7 @@ const zoomAmount = 19;
 const tileSize = 1e-4;
 const neighborhoodSize = 8;
 const cacheChance = 0.1;
+const coinCache = new Map<string, number>();
 
 // create map
 const map = leaflet.map("map", {
@@ -44,6 +45,17 @@ playerMarker.bindTooltip("This is you!");
 
 // functions -------------------------------------------------------
 
+function changeCache(change: number, position: string, popup: HTMLDivElement) {
+  let currentAmount = coinCache.get(position) || 0;
+  if ((change > 0 && currentAmount > 0) || (change < 0 && playerCoins > 0)) {
+    currentAmount -= change;
+    playerCoins += change;
+    coinCache.set(position, currentAmount);
+    popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
+      `${currentAmount}`;
+    status.innerHTML = `You have ${playerCoins} coin(s)`;
+  }
+}
 function placeCache(y: number, x: number) {
   // create cache area
   const bounds = leaflet.latLngBounds(
@@ -53,28 +65,31 @@ function placeCache(y: number, x: number) {
 
   const rect = leaflet.rectangle(bounds);
   rect.addTo(map);
+  const positionKey = `${y},${x}`;
 
-  // cache popup
   rect.bindPopup(() => {
-    let coinAmount = Math.floor(luck([y, x].toString()) * 100);
+    if (!coinCache.has(positionKey)) {
+      coinCache.set(positionKey, Math.floor(luck([y, x].toString()) * 100));
+    }
+
+    const coinAmount = coinCache.get(positionKey)!;
 
     const popup = document.createElement("div");
     popup.innerHTML = `
           <div>There are <span id="coin">${coinAmount}</span> coin(s) here!</div>
-          <button id="poke">Poke</button>
+          <button id="collect">Collect</button>
+          <button id="deposit">Deposit</button>
     `;
-    popup.querySelector<HTMLButtonElement>("#poke")!.addEventListener(
-      "click",
-      () => {
-        if (coinAmount > 0) {
-          coinAmount--;
-          playerCoins++;
-          popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
-            `${coinAmount}`;
-          status.innerHTML = `You have ${playerCoins} coin(s)`;
-        }
-      },
-    );
+    popup.querySelector<HTMLButtonElement>("#collect")!
+      .addEventListener(
+        "click",
+        () => changeCache(1, positionKey, popup),
+      );
+    popup.querySelector<HTMLButtonElement>("#deposit")!
+      .addEventListener(
+        "click",
+        () => changeCache(-1, positionKey, popup),
+      );
 
     return popup;
   });
