@@ -11,7 +11,6 @@ import "./leafletWorkaround.ts";
 import luck from "./luck.ts";
 
 const APP_NAME = "GeoCoin";
-//const app = document.querySelector<HTMLDivElement>("#app")!;
 document.title = APP_NAME;
 
 let playerCoins = 0;
@@ -45,7 +44,8 @@ playerMarker.bindTooltip("This is you!");
 
 // functions -------------------------------------------------------
 
-function changeCache(change: number, position: string, popup: HTMLDivElement) {
+// update cache when player collects or deposits coins
+function updateCache(change: number, position: string, popup: HTMLDivElement) {
   let currentAmount = coinCache.get(position) || 0;
   if ((change > 0 && currentAmount > 0) || (change < 0 && playerCoins > 0)) {
     currentAmount -= change;
@@ -56,6 +56,7 @@ function changeCache(change: number, position: string, popup: HTMLDivElement) {
     status.innerHTML = `You have ${playerCoins} coin(s)`;
   }
 }
+
 function placeCache(y: number, x: number) {
   // create cache area
   const bounds = leaflet.latLngBounds(
@@ -67,7 +68,9 @@ function placeCache(y: number, x: number) {
   rect.addTo(map);
   const positionKey = `${y},${x}`;
 
+  // cache popup
   rect.bindPopup(() => {
+    // store coin amount
     if (!coinCache.has(positionKey)) {
       coinCache.set(positionKey, Math.floor(luck([y, x].toString()) * 100));
     }
@@ -83,12 +86,12 @@ function placeCache(y: number, x: number) {
     popup.querySelector<HTMLButtonElement>("#collect")!
       .addEventListener(
         "click",
-        () => changeCache(1, positionKey, popup),
+        () => updateCache(1, positionKey, popup),
       );
     popup.querySelector<HTMLButtonElement>("#deposit")!
       .addEventListener(
         "click",
-        () => changeCache(-1, positionKey, popup),
+        () => updateCache(-1, positionKey, popup),
       );
 
     return popup;
