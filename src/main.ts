@@ -56,6 +56,7 @@ function getCell(lat: number, lon: number): Cache {
 
   let cache = coinCache.get(key);
   if (cache == undefined) {
+    // generate coins
     const coins = Array<Coin>();
     for (let i = 0; i < Math.floor(luck([lat, lon].toString()) * 100); i++) {
       coins.push({ serial: `${key}#${i}` });
@@ -94,7 +95,7 @@ function placeCache(y: number, x: number) {
 
   // cache popup
   rect.bindPopup(() => {
-    const coinAmount = getCell(y, x)!.coins;
+    const coinAmount = getCell(y, x).coins;
 
     const popup = document.createElement("div");
     popup.innerHTML = `
