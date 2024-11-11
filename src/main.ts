@@ -39,6 +39,7 @@ const map = leaflet.map("map", {
   zoom: zoomAmount,
   scrollWheelZoom: false,
 });
+let cacheLayer = leaflet.layerGroup().addTo(map);
 
 leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: zoomAmount,
@@ -57,6 +58,8 @@ function playerMovement(dir: string, lat: number, lon: number) {
     playerLocation[0] += lat;
     playerLocation[1] += lon;
     playerMarker.setLatLng(playerLocation);
+    map.removeLayer(cacheLayer);
+    populateNeighborhood();
   });
 }
 playerMovement("#north", tileSize, 0);
@@ -105,7 +108,7 @@ function placeCache(y: number, x: number) {
   );
 
   const rect = leaflet.rectangle(bounds);
-  rect.addTo(map);
+  rect.addTo(cacheLayer);
 
   // cache popup
   rect.bindPopup(() => {
@@ -141,6 +144,7 @@ function placeCache(y: number, x: number) {
 }
 
 function populateNeighborhood() {
+  cacheLayer = leaflet.layerGroup().addTo(map);
   for (
     let y = playerLocation[0] - tileSize * neighborhoodSize;
     y < playerLocation[0] + tileSize * neighborhoodSize;
