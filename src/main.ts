@@ -50,6 +50,20 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const playerMarker = leaflet.marker(playerLocation).addTo(map);
 playerMarker.bindTooltip("This is you!");
 
+// player movement
+function playerMovement(dir: string, lat: number, lon: number) {
+  const button = document.querySelector<HTMLDivElement>(dir)!;
+  button.addEventListener("click", () => {
+    playerLocation[0] += lat;
+    playerLocation[1] += lon;
+    playerMarker.setLatLng(playerLocation);
+  });
+}
+playerMovement("#north", tileSize, 0);
+playerMovement("#east", 0, tileSize);
+playerMovement("#south", -tileSize, 0);
+playerMovement("#west", 0, -tileSize);
+
 // functions -------------------------------------------------------
 function getCell(lat: number, lon: number): Cache {
   const key = getKey(lat, lon);
