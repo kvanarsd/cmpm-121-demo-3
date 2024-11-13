@@ -21,9 +21,31 @@ status.innerHTML = `You have ${playerCoins.length} coin(s)`;
 interface Coin {
   serial: string;
 }
-interface Cache {
+/*interface Cache {
   coordinates: Array<number>;
   coins: Array<Coin>;
+}*/
+interface Momento<T> {
+  toMomento(): T;
+  fromMomento(momento: T): void;
+}
+class Cache implements Momento<string> {
+  coordinates: Array<number>;
+  coins: Array<Coin>;
+
+  constructor(i: number, j: number, coins: Array<Coin>) {
+    this.coordinates = [i, j];
+    this.coins = coins;
+  }
+
+  toMomento() {
+    return JSON.stringify({ coins: this.coins });
+  }
+
+  fromMomento(momento: string) {
+    const state = JSON.parse(momento);
+    this.coins = state.coins;
+  }
 }
 
 const playerLocation = [36.989498, -122.062777];
@@ -32,6 +54,7 @@ const tileSize = 1e-4;
 const neighborhoodSize = 8;
 const cacheChance = 0.1;
 const coinCache = new Map<string, Cache>();
+const cacheMomentos = new Map<string, string>();
 
 // create map
 const map = leaflet.map("map", {
@@ -55,10 +78,12 @@ playerMarker.bindTooltip("This is you!");
 function playerMovement(dir: string, lat: number, lon: number) {
   const button = document.querySelector<HTMLDivElement>(dir)!;
   button.addEventListener("click", () => {
+    saveCaches();
     playerLocation[0] += lat;
     playerLocation[1] += lon;
     playerMarker.setLatLng(playerLocation);
     map.removeLayer(cacheLayer);
+    restoreCaches();
     populateNeighborhood();
   });
 }
@@ -68,6 +93,21 @@ playerMovement("#south", -tileSize, 0);
 playerMovement("#west", 0, -tileSize);
 
 // functions -------------------------------------------------------
+function saveCaches() {
+  for (const [key, cache] of coinCache) {
+    cacheMomentos.set(key, cache.toMomento());
+  }
+}
+
+function restoreCaches() {
+  for (const [key, cache] of coinCache) {
+    const momento = cacheMomentos.get(key);
+    if (momento) {
+      cache.fromMomento(momento);
+    }
+  }
+}
+
 function getCell(lat: number, lon: number): Cache {
   const key = getKey(lat, lon);
 
@@ -78,7 +118,7 @@ function getCell(lat: number, lon: number): Cache {
     for (let i = 0; i < Math.floor(luck([lat, lon].toString()) * 100); i++) {
       coins.push({ serial: `${key}#${i}` });
     }
-    cache = { coordinates: [lat, lon], coins: coins };
+    cache = new Cache(lat, lon, coins);
     coinCache.set(key, cache);
   }
 
