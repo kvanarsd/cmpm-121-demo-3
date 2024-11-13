@@ -17,24 +17,20 @@ const playerCoins = Array<Coin>();
 const status = document.querySelector<HTMLDivElement>("#statusPanel")!;
 status.innerHTML = `You have ${playerCoins.length} coin(s)`;
 
-// map variables -------------------------------------------------------
+// Cache classes -------------------------------------------------------
 interface Coin {
   serial: string;
 }
-/*interface Cache {
-  coordinates: Array<number>;
-  coins: Array<Coin>;
-}*/
+
 interface Momento<T> {
   toMomento(): T;
   fromMomento(momento: T): void;
 }
+
 class Cache implements Momento<string> {
-  coordinates: Array<number>;
   coins: Array<Coin>;
 
-  constructor(i: number, j: number, coins: Array<Coin>) {
-    this.coordinates = [i, j];
+  constructor(coins: Array<Coin>) {
     this.coins = coins;
   }
 
@@ -48,6 +44,22 @@ class Cache implements Momento<string> {
   }
 }
 
+function saveCaches() {
+  for (const [key, cache] of coinCache.entries()) {
+    cacheMomentos.set(key, cache.toMomento());
+  }
+}
+
+function restoreCache(key: string) {
+  const momento = cacheMomentos.get(key);
+  if (momento) {
+    const cache = new Cache([]);
+    cache.fromMomento(momento);
+    coinCache.set(key, cache);
+  }
+}
+
+// map variables -------------------------------------------------------
 const playerLocation = [36.989498, -122.062777];
 const zoomAmount = 19;
 const tileSize = 1e-4;
@@ -83,7 +95,7 @@ function playerMovement(dir: string, lat: number, lon: number) {
     playerLocation[1] += lon;
     playerMarker.setLatLng(playerLocation);
     map.removeLayer(cacheLayer);
-    restoreCaches();
+    coinCache.clear();
     populateNeighborhood();
   });
 }
@@ -93,21 +105,6 @@ playerMovement("#south", -tileSize, 0);
 playerMovement("#west", 0, -tileSize);
 
 // functions -------------------------------------------------------
-function saveCaches() {
-  for (const [key, cache] of coinCache) {
-    cacheMomentos.set(key, cache.toMomento());
-  }
-}
-
-function restoreCaches() {
-  for (const [key, cache] of coinCache) {
-    const momento = cacheMomentos.get(key);
-    if (momento) {
-      cache.fromMomento(momento);
-    }
-  }
-}
-
 function getCell(lat: number, lon: number): Cache {
   const key = getKey(lat, lon);
 
@@ -118,7 +115,7 @@ function getCell(lat: number, lon: number): Cache {
     for (let i = 0; i < Math.floor(luck([lat, lon].toString()) * 100); i++) {
       coins.push({ serial: `${key}#${i}` });
     }
-    cache = new Cache(lat, lon, coins);
+    cache = new Cache(/*lat, lon, */ coins);
     coinCache.set(key, cache);
   }
 
@@ -152,6 +149,7 @@ function placeCache(y: number, x: number) {
 
   // cache popup
   rect.bindPopup(() => {
+    restoreCache(getKey(y, x));
     const coinAmount = getCell(y, x).coins;
 
     const popup = document.createElement("div");
