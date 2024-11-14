@@ -14,7 +14,7 @@ const APP_NAME = "GeoCoin";
 document.title = APP_NAME;
 
 const localPlayerData = localStorage.getItem("playerCoin");
-const playerCoins: Array<Coin> = localPlayerData
+let playerCoins: Array<Coin> = localPlayerData
   ? JSON.parse(localPlayerData)
   : [];
 const status = document.querySelector<HTMLDivElement>("#statusPanel")!;
@@ -52,7 +52,6 @@ function saveCache(key: string, cache: Cache) {
 }
 
 function restoreCache(key: string) {
-  //const momento = cacheMomentos.get(key);
   const momento = localStorage.getItem(key);
   if (momento) {
     const cache = new Cache([]);
@@ -62,13 +61,17 @@ function restoreCache(key: string) {
 }
 
 // map variables -------------------------------------------------------
-const playerLocation = [36.989498, -122.062777];
+const origin = [36.989498, -122.062777];
+let playerLocation = origin;
+const savedLocation = localStorage.getItem("playerLocation");
+if (savedLocation) {
+  playerLocation = JSON.parse(savedLocation);
+}
 const zoomAmount = 19;
 const tileSize = 1e-4;
 const neighborhoodSize = 8;
 const cacheChance = 0.1;
 const coinCache = new Map<string, Cache>();
-//const cacheMomentos = new Map<string, string>();
 
 // create map
 const map = leaflet.map("map", {
@@ -97,10 +100,8 @@ function playerMovement(dir: string, lat: number, lon: number) {
     }
     playerLocation[0] += lat;
     playerLocation[1] += lon;
-    playerMarker.setLatLng(playerLocation);
-    map.removeLayer(cacheLayer);
-    coinCache.clear();
-    populateNeighborhood();
+    localStorage.setItem("playerLocation", JSON.stringify(playerLocation));
+    resetMap();
   });
 }
 playerMovement("#north", tileSize, 0);
@@ -109,6 +110,13 @@ playerMovement("#south", -tileSize, 0);
 playerMovement("#west", 0, -tileSize);
 
 // functions -------------------------------------------------------
+function resetMap() {
+  playerMarker.setLatLng(playerLocation);
+  map.removeLayer(cacheLayer);
+  coinCache.clear();
+  populateNeighborhood();
+}
+
 function getCell(lat: number, lon: number): Cache {
   const key = getKey(lat, lon);
 
@@ -119,7 +127,7 @@ function getCell(lat: number, lon: number): Cache {
     for (let i = 0; i < Math.floor(luck([lat, lon].toString()) * 100); i++) {
       coins.push({ serial: `${key}#${i}` });
     }
-    cache = new Cache(/*lat, lon, */ coins);
+    cache = new Cache(coins);
     coinCache.set(key, cache);
   }
 
@@ -206,6 +214,15 @@ function populateNeighborhood() {
     }
   }
 }
+
+const reset = document.querySelector<HTMLDivElement>("#reset")!;
+reset.addEventListener("click", () => {
+  localStorage.clear();
+  playerCoins = [];
+  status.innerHTML = `You have 0 coin(s)`;
+  playerLocation = origin;
+  resetMap();
+});
 
 // call functions ---------------------------------------------------
 populateNeighborhood();
