@@ -170,7 +170,7 @@ function placeCache(y: number, x: number) {
 
   const rect = leaflet.rectangle(bounds);
   rect.addTo(cacheLayer);
-  //console.log("cache");
+
   // cache popup
   rect.bindPopup(() => {
     restoreCache(getKey(y, x));
