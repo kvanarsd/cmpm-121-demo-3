@@ -90,6 +90,12 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 // Player marker
 const playerMarker = leaflet.marker(playerLocation).addTo(map);
 playerMarker.bindTooltip("This is you!");
+let path: leaflet.latlng = [[...playerLocation]];
+const savedPath = localStorage.getItem("savedPath");
+if (savedPath) {
+  path = JSON.parse(savedPath);
+}
+let polyline = leaflet.polyline(path, { color: "red" }).addTo(map);
 
 // player movement
 function playerMovement(dir: string, lat: number, lon: number) {
@@ -111,6 +117,9 @@ playerMovement("#west", 0, -tileSize);
 
 // functions -------------------------------------------------------
 function resetMap() {
+  path.push([...playerLocation]);
+  localStorage.setItem("savedPath", JSON.stringify(path));
+  polyline.setLatLngs(path);
   map.panTo(playerLocation);
   playerMarker.setLatLng(playerLocation);
   map.removeLayer(cacheLayer);
@@ -224,6 +233,9 @@ reset.addEventListener("click", () => {
   status.innerHTML = `You have 0 coin(s)`;
   playerLocation = [origin[0], origin[1]];
   resetMap();
+  polyline.removeFrom(map);
+  path = [[...playerLocation]];
+  polyline = leaflet.polyline(path, { color: "red" }).addTo(map);
 });
 
 const sensor = document.querySelector<HTMLDivElement>("#sensor")!;
