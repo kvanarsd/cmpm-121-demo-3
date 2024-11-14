@@ -62,7 +62,7 @@ function restoreCache(key: string) {
 
 // map variables -------------------------------------------------------
 const origin = [36.989498, -122.062777];
-let playerLocation = origin;
+let playerLocation = [origin[0], origin[1]];
 const savedLocation = localStorage.getItem("playerLocation");
 if (savedLocation) {
   playerLocation = JSON.parse(savedLocation);
@@ -111,6 +111,7 @@ playerMovement("#west", 0, -tileSize);
 
 // functions -------------------------------------------------------
 function resetMap() {
+  map.panTo(playerLocation);
   playerMarker.setLatLng(playerLocation);
   map.removeLayer(cacheLayer);
   coinCache.clear();
@@ -159,7 +160,7 @@ function placeCache(y: number, x: number) {
 
   const rect = leaflet.rectangle(bounds);
   rect.addTo(cacheLayer);
-
+  //console.log("cache");
   // cache popup
   rect.bindPopup(() => {
     restoreCache(getKey(y, x));
@@ -215,12 +216,28 @@ function populateNeighborhood() {
   }
 }
 
+// Buttons ---------------------------------------------------
 const reset = document.querySelector<HTMLDivElement>("#reset")!;
 reset.addEventListener("click", () => {
   localStorage.clear();
   playerCoins = [];
   status.innerHTML = `You have 0 coin(s)`;
-  playerLocation = origin;
+  playerLocation = [origin[0], origin[1]];
+  resetMap();
+});
+
+const sensor = document.querySelector<HTMLDivElement>("#sensor")!;
+sensor.addEventListener("click", () => {
+  if (sensor.classList.contains("locating")) {
+    sensor.classList.remove("locating");
+    map.stopLocate();
+  } else {
+    sensor.classList.add("locating");
+    map.locate({ watch: true });
+  }
+});
+map.on("locationfound", function (e: { latlng: { lat: number; lng: number } }) {
+  playerLocation = [e.latlng.lat, e.latlng.lng];
   resetMap();
 });
 
