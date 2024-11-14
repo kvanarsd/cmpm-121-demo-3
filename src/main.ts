@@ -13,7 +13,10 @@ import luck from "./luck.ts";
 const APP_NAME = "GeoCoin";
 document.title = APP_NAME;
 
-const playerCoins = Array<Coin>();
+const localPlayerData = localStorage.getItem("playerCoin");
+const playerCoins: Array<Coin> = localPlayerData
+  ? JSON.parse(localPlayerData)
+  : [];
 const status = document.querySelector<HTMLDivElement>("#statusPanel")!;
 status.innerHTML = `You have ${playerCoins.length} coin(s)`;
 
@@ -44,14 +47,13 @@ class Cache implements Momento<string> {
   }
 }
 
-function saveCaches() {
-  for (const [key, cache] of coinCache.entries()) {
-    cacheMomentos.set(key, cache.toMomento());
-  }
+function saveCache(key: string, cache: Cache) {
+  localStorage.setItem(key, cache.toMomento());
 }
 
 function restoreCache(key: string) {
-  const momento = cacheMomentos.get(key);
+  //const momento = cacheMomentos.get(key);
+  const momento = localStorage.getItem(key);
   if (momento) {
     const cache = new Cache([]);
     cache.fromMomento(momento);
@@ -66,7 +68,7 @@ const tileSize = 1e-4;
 const neighborhoodSize = 8;
 const cacheChance = 0.1;
 const coinCache = new Map<string, Cache>();
-const cacheMomentos = new Map<string, string>();
+//const cacheMomentos = new Map<string, string>();
 
 // create map
 const map = leaflet.map("map", {
@@ -90,7 +92,9 @@ playerMarker.bindTooltip("This is you!");
 function playerMovement(dir: string, lat: number, lon: number) {
   const button = document.querySelector<HTMLDivElement>(dir)!;
   button.addEventListener("click", () => {
-    saveCaches();
+    for (const [key, cache] of coinCache.entries()) {
+      saveCache(key, cache);
+    }
     playerLocation[0] += lat;
     playerLocation[1] += lon;
     playerMarker.setLatLng(playerLocation);
@@ -134,6 +138,7 @@ function updateCache(add: Array<Coin>, remove: Array<Coin>) {
     console.log(coin.serial);
     add.push(coin);
     status.innerHTML = `You have ${playerCoins.length} coin(s)`;
+    localStorage.setItem("playerCoin", JSON.stringify(playerCoins));
   }
 }
 
@@ -163,6 +168,7 @@ function placeCache(y: number, x: number) {
         "click",
         () => {
           updateCache(playerCoins, coinAmount);
+          saveCache(getKey(y, x), getCell(y, x));
           popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
             `${coinAmount.length}`;
         },
@@ -172,6 +178,7 @@ function placeCache(y: number, x: number) {
         "click",
         () => {
           updateCache(coinAmount, playerCoins);
+          saveCache(getKey(y, x), getCell(y, x));
           popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
             `${coinAmount.length}`;
         },
