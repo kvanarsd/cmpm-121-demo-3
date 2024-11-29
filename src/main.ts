@@ -18,13 +18,12 @@ class Storage {
     } catch (error) {
       console.error(`Error saving key "${key}"`, error);
     }
-      
   }
 
   static load<T>(key: string): T | null {
     try {
       const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) as T : null;
+      return data ? (JSON.parse(data) as T) : null;
     } catch (error) {
       console.error(`Error loading key "${key}" from storage:`, error);
       return null;
@@ -39,7 +38,7 @@ class Storage {
   // Player coins
   static loadPlayerCoins(): Array<Coin> {
     return this.load<Array<Coin>>("playerCoin") ?? [];
-  }  
+  }
   static savePlayerCoins(coins: Array<Coin>) {
     this.save("playerCoin", coins);
   }
@@ -66,7 +65,7 @@ class Storage {
 const APP_NAME = "GeoCoin";
 document.title = APP_NAME;
 
-let playerCoins =  Storage.loadPlayerCoins();
+let playerCoins = Storage.loadPlayerCoins();
 
 const status = document.querySelector<HTMLDivElement>("#statusPanel")!;
 status.innerHTML = `You have ${playerCoins.length} coin(s)`;
@@ -124,11 +123,13 @@ const map = leaflet.map("map", {
 });
 let cacheLayer = leaflet.layerGroup().addTo(map);
 
-leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: zoomAmount,
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-}).addTo(map);
+leaflet
+  .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: zoomAmount,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  })
+  .addTo(map);
 
 // Player marker
 const playerMarker = leaflet.marker(playerLocation).addTo(map);
@@ -201,10 +202,7 @@ function updateCache(add: Array<Coin>, remove: Array<Coin>) {
 
 function placeCache(y: number, x: number) {
   // create cache area
-  const bounds = leaflet.latLngBounds(
-    [y, x],
-    [y + tileSize, x + tileSize],
-  );
+  const bounds = leaflet.latLngBounds([y, x], [y + tileSize, x + tileSize]);
 
   const rect = leaflet.rectangle(bounds);
   rect.addTo(cacheLayer);
@@ -220,26 +218,22 @@ function placeCache(y: number, x: number) {
           <button id="collect">Collect</button>
           <button id="deposit">Deposit</button>
     `;
-    popup.querySelector<HTMLButtonElement>("#collect")!
-      .addEventListener(
-        "click",
-        () => {
-          updateCache(playerCoins, coinAmount);
-          Storage.save(getKey(y, x), getCell(y, x).toMomento());
-          popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
-            `${coinAmount.length}`;
-        },
-      );
-    popup.querySelector<HTMLButtonElement>("#deposit")!
-      .addEventListener(
-        "click",
-        () => {
-          updateCache(coinAmount, playerCoins);
-          Storage.save(getKey(y, x), getCell(y, x).toMomento());
-          popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
-            `${coinAmount.length}`;
-        },
-      );
+    popup
+      .querySelector<HTMLButtonElement>("#collect")!
+      .addEventListener("click", () => {
+        updateCache(playerCoins, coinAmount);
+        Storage.save(getKey(y, x), getCell(y, x).toMomento());
+        popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
+          `${coinAmount.length}`;
+      });
+    popup
+      .querySelector<HTMLButtonElement>("#deposit")!
+      .addEventListener("click", () => {
+        updateCache(coinAmount, playerCoins);
+        Storage.save(getKey(y, x), getCell(y, x).toMomento());
+        popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
+          `${coinAmount.length}`;
+      });
 
     return popup;
   });
