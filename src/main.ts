@@ -12,7 +12,7 @@ import luck from "./luck.ts";
 
 // Storage
 class Storage {
-  static save(key: string, value: any) {
+  static save<T>(key: string, value: T) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
