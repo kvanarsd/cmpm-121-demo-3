@@ -13,23 +13,60 @@ import luck from "./luck.ts";
 // Storage
 class Storage {
   static save(key: string, value: any) {
+    try {
       localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Error saving key "${key}"`, error);
+    }
+      
   }
 
   static load<T>(key: string): T | null {
+    try {
       const data = localStorage.getItem(key);
       return data ? JSON.parse(data) as T : null;
+    } catch (error) {
+      console.error(`Error loading key "${key}" from storage:`, error);
+      return null;
+    }
   }
 
   static clear() {
     localStorage.clear();
+  }
+
+  // Type-Specific Methods ----------------
+  // Player coins
+  static loadPlayerCoins(): Array<Coin> {
+    return this.load<Array<Coin>>("playerCoin") ?? [];
+  }  
+  static savePlayerCoins(coins: Array<Coin>) {
+    this.save("playerCoin", coins);
+  }
+
+  // Player Location
+  static loadPlayerLocation(): number[] {
+    return this.load<number[]>("playerLocation") ?? [36.989498, -122.062777]; // Default to your "origin" location
+  }
+
+  static savePlayerLocation(location: number[]) {
+    this.save("playerLocation", location);
+  }
+
+  // Player Path
+  static loadSavedPath(): Array<number[]> {
+    return this.load<Array<number[]>>("savedPath") ?? [];
+  }
+
+  static saveSavedPath(path: Array<number[]>) {
+    this.save("savedPath", path);
   }
 }
 
 const APP_NAME = "GeoCoin";
 document.title = APP_NAME;
 
-let playerCoins: Array<Coin> = Storage.load("playerCoin") ?? [];
+let playerCoins =  Storage.loadPlayerCoins();
 
 const status = document.querySelector<HTMLDivElement>("#statusPanel")!;
 status.innerHTML = `You have ${playerCoins.length} coin(s)`;
@@ -72,7 +109,7 @@ function restoreCache(key: string) {
 
 // map variables -------------------------------------------------------
 const origin = [36.989498, -122.062777];
-let playerLocation = Storage.load<[]>("playerLocation") ?? [...origin];
+let playerLocation = Storage.loadPlayerLocation();
 const zoomAmount = 19;
 const tileSize = 1e-4;
 const neighborhoodSize = 8;
@@ -96,7 +133,7 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 // Player marker
 const playerMarker = leaflet.marker(playerLocation).addTo(map);
 playerMarker.bindTooltip("This is you!");
-let path: leaflet.latlng = Storage.load<[[]]>("savedPath") ?? [[...playerLocation]];
+let path: leaflet.latlng = Storage.loadSavedPath();
 let polyline = leaflet.polyline(path, { color: "red" }).addTo(map);
 
 // player movement
@@ -108,7 +145,7 @@ function playerMovement(dir: string, lat: number, lon: number) {
     }
     playerLocation[0] += lat;
     playerLocation[1] += lon;
-    Storage.save("playerLocation", playerLocation);
+    Storage.savePlayerLocation(playerLocation);
     resetMap();
   });
 }
@@ -120,7 +157,7 @@ playerMovement("#west", 0, -tileSize);
 // functions -------------------------------------------------------
 function resetMap() {
   path.push([...playerLocation]);
-  Storage.save("savedPath", path);
+  Storage.saveSavedPath(path);
   polyline.setLatLngs(path);
   map.panTo(playerLocation);
   playerMarker.setLatLng(playerLocation);
@@ -158,7 +195,7 @@ function updateCache(add: Array<Coin>, remove: Array<Coin>) {
     console.log(coin.serial);
     add.push(coin);
     status.innerHTML = `You have ${playerCoins.length} coin(s)`;
-    Storage.save("playerCoin", playerCoins);
+    Storage.savePlayerCoins(playerCoins);
   }
 }
 
