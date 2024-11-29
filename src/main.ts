@@ -10,13 +10,27 @@ import "./leafletWorkaround.ts";
 // Deterministic random number generator
 import luck from "./luck.ts";
 
+// Storage
+class Storage {
+  static save(key: string, value: any) {
+      localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  static load<T>(key: string): T | null {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) as T : null;
+  }
+
+  static clear() {
+    localStorage.clear();
+  }
+}
+
 const APP_NAME = "GeoCoin";
 document.title = APP_NAME;
 
-const localPlayerData = localStorage.getItem("playerCoin");
-let playerCoins: Array<Coin> = localPlayerData
-  ? JSON.parse(localPlayerData)
-  : [];
+let playerCoins: Array<Coin> = Storage.load("playerCoin") ?? [];
+
 const status = document.querySelector<HTMLDivElement>("#statusPanel")!;
 status.innerHTML = `You have ${playerCoins.length} coin(s)`;
 
@@ -47,12 +61,8 @@ class Cache implements Momento<string> {
   }
 }
 
-function saveCache(key: string, cache: Cache) {
-  localStorage.setItem(key, cache.toMomento());
-}
-
 function restoreCache(key: string) {
-  const momento = localStorage.getItem(key);
+  const momento = Storage.load<string>(key);
   if (momento) {
     const cache = new Cache([]);
     cache.fromMomento(momento);
@@ -62,11 +72,7 @@ function restoreCache(key: string) {
 
 // map variables -------------------------------------------------------
 const origin = [36.989498, -122.062777];
-let playerLocation = [...origin];
-const savedLocation = localStorage.getItem("playerLocation");
-if (savedLocation) {
-  playerLocation = JSON.parse(savedLocation);
-}
+let playerLocation = Storage.load<[]>("playerLocation") ?? [...origin];
 const zoomAmount = 19;
 const tileSize = 1e-4;
 const neighborhoodSize = 8;
@@ -90,12 +96,7 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 // Player marker
 const playerMarker = leaflet.marker(playerLocation).addTo(map);
 playerMarker.bindTooltip("This is you!");
-let path: leaflet.latlng = [[...playerLocation]];
-const savedPath = localStorage.getItem("savedPath");
-if (savedPath) {
-  path = JSON.parse(savedPath);
-  console.log("saved", path);
-}
+let path: leaflet.latlng = Storage.load<[[]]>("savedPath") ?? [[...playerLocation]];
 let polyline = leaflet.polyline(path, { color: "red" }).addTo(map);
 
 // player movement
@@ -103,11 +104,11 @@ function playerMovement(dir: string, lat: number, lon: number) {
   const button = document.querySelector<HTMLDivElement>(dir)!;
   button.addEventListener("click", () => {
     for (const [key, cache] of coinCache.entries()) {
-      saveCache(key, cache);
+      Storage.save(key, cache.toMomento());
     }
     playerLocation[0] += lat;
     playerLocation[1] += lon;
-    localStorage.setItem("playerLocation", JSON.stringify(playerLocation));
+    Storage.save("playerLocation", playerLocation);
     resetMap();
   });
 }
@@ -119,7 +120,7 @@ playerMovement("#west", 0, -tileSize);
 // functions -------------------------------------------------------
 function resetMap() {
   path.push([...playerLocation]);
-  localStorage.setItem("savedPath", JSON.stringify(path));
+  Storage.save("savedPath", path);
   polyline.setLatLngs(path);
   map.panTo(playerLocation);
   playerMarker.setLatLng(playerLocation);
@@ -157,7 +158,7 @@ function updateCache(add: Array<Coin>, remove: Array<Coin>) {
     console.log(coin.serial);
     add.push(coin);
     status.innerHTML = `You have ${playerCoins.length} coin(s)`;
-    localStorage.setItem("playerCoin", JSON.stringify(playerCoins));
+    Storage.save("playerCoin", playerCoins);
   }
 }
 
@@ -187,7 +188,7 @@ function placeCache(y: number, x: number) {
         "click",
         () => {
           updateCache(playerCoins, coinAmount);
-          saveCache(getKey(y, x), getCell(y, x));
+          Storage.save(getKey(y, x), getCell(y, x).toMomento());
           popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
             `${coinAmount.length}`;
         },
@@ -197,7 +198,7 @@ function placeCache(y: number, x: number) {
         "click",
         () => {
           updateCache(coinAmount, playerCoins);
-          saveCache(getKey(y, x), getCell(y, x));
+          Storage.save(getKey(y, x), getCell(y, x).toMomento());
           popup.querySelector<HTMLSpanElement>("#coin")!.innerHTML =
             `${coinAmount.length}`;
         },
@@ -242,7 +243,7 @@ reset.addEventListener("click", () => {
     }
     path = [[...origin]];
     polyline = leaflet.polyline(path, { color: "red" }).addTo(map);
-    localStorage.clear();
+    Storage.clear();
   }
 });
 
